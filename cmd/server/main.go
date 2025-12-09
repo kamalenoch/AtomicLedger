@@ -5,21 +5,29 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kamalenoch/AtomicLedger/internal/adapters/handler"
+	"github.com/kamalenoch/AtomicLedger/internal/adapters/repository"
 )
 
 func main() {
-	log.Println("Starting AtomicLedger Banking System...")
+	log.Println("Starting AtomicLedger...")
 
-	// 1. Initialize the HTTP Handler
-	myHandler := handler.NewHTTPHandler()
+	// 1. Connect to Docker Database
+	// We use the same credentials defined in docker-compose.yml
+	dbRepo, err := repository.NewPostgresRepository("localhost", "5432", "user", "password", "atomic_ledger")
+	if err != nil {
+		log.Fatalf("Failed to connect to DB: %v", err)
+	}
+	log.Println("Connected to PostgreSQL Database")
 
-	// 2. Setup the Web Framework (Gin)
+	// 2. Inject the DB connection into the Handler
+	// THIS FIXES THE ERROR: We pass 'dbRepo' into the function
+	myHandler := handler.NewHTTPHandler(dbRepo)
+
+	// 3. Setup Router
 	router := gin.Default()
-
-	// 3. Define Routes (API Endpoints)
 	router.POST("/accounts", myHandler.CreateAccount)
 
-	// 4. Start the Server on Port 8080
-	log.Println("Server running on http://localhost:8080")
+	// 4. Run
+	log.Println("Server running on :8080")
 	router.Run(":8080")
 }

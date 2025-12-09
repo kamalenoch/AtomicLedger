@@ -7,7 +7,7 @@ import (
 // User's Bank Account
 type Account struct {
 	ID        string    `json:"id"`
-	OwnerId   string    `json:"owner_id"`
+	OwnerID   string    `json:"owner_id"`
 	Balance   int64     `json:"balance"`
 	Currency  string    `json:"currency"`
 	CreatedAt time.Time `json:"created_at"`
