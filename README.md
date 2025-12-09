@@ -1,4 +1,4 @@
-# AtomicLedger (WIP)
+# AtomicLedger
 
 AtomicLedger is a high-concurrency, double-entry accounting system designed to eliminate race conditions in financial transactions. Built with **Go** and **PostgreSQL**.
 
