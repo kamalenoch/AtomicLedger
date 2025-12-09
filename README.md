@@ -32,7 +32,7 @@ To handle 1000+ concurrent requests:
 
 ## Roadmap
 - [x] System Design & Schema
-- [ ] Core Ledger Logic (Go)
-- [ ] API Layer (Gin/Fiber)
-- [ ] Dockerization
+- [x] Core Ledger Logic (Go)
+- [x] API Layer (Gin/Fiber)
+- [x] Dockerization
 - [ ] Load Testing (k6 script)
