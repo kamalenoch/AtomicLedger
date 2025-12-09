@@ -60,3 +60,39 @@ func (h *HTTPHandler) CreateAccount(c *gin.Context) {
 		"balance":    newAcc.Balance,
 	})
 }
+
+type TransferRequest struct {
+	FromAccountID string `json:"from_account_id" binding:"required"`
+	ToAccountID   string `json:"to_account_id" binding:"required"`
+	Amount        int64  `json:"amount" binding:"required,gt=0"` // Must be positive
+}
+
+func (h *HTTPHandler) TransferMoney(c *gin.Context) {
+	var req TransferRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Create Domain Object
+	transaction := domain.Transaction{
+		FromAccount: req.FromAccountID,
+		ToAccount:   req.ToAccountID,
+		Amount:      req.Amount,
+		Status:      "PENDING",
+	}
+
+	// Call the Locked Repository Method
+	err := h.repo.CreateTransaction(c, transaction)
+	if err != nil {
+		// If error says "insufficient", return 400, else 500
+		if err.Error() == "insufficient funds" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Transfer successful", "status": "COMPLETED"})
+}

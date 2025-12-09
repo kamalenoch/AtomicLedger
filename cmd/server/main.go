@@ -26,6 +26,7 @@ func main() {
 	// 3. Setup Router
 	router := gin.Default()
 	router.POST("/accounts", myHandler.CreateAccount)
+	router.POST("/transfer", myHandler.TransferMoney) 
 
 	// 4. Run
 	log.Println("Server running on :8080")

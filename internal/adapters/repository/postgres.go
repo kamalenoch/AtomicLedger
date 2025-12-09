@@ -49,8 +49,49 @@ func (r *PostgresRepository) GetAccountByID(ctx context.Context, id string) (*do
 	return nil, fmt.Errorf("method GetAccountByID not implemented yet")
 }
 
-// CreateTransaction (Placeholder to satisfy Interface)
-func (r *PostgresRepository) CreateTransaction(ctx context.Context, tx domain.Transaction) error {
-	// We will implement this later
-	return fmt.Errorf("method CreateTransaction not implemented yet")
+// CreateTransaction executes the money move with ACID guarantees
+func (r *PostgresRepository) CreateTransaction(ctx context.Context, txReq domain.Transaction) error {
+	// 1. Start a Database Transaction
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	// Safety net: Rollback if anything goes wrong (unless we Commit)
+	defer tx.Rollback()
+
+	// 2. FETCH & LOCK the Source Account ("SELECT FOR UPDATE")
+	// This stops any race conditions immediately.
+	var currentBalance int64
+	queryLock := `SELECT balance FROM accounts WHERE id = $1 FOR UPDATE`
+	
+	err = tx.QueryRowContext(ctx, queryLock, txReq.FromAccount).Scan(&currentBalance)
+	if err != nil {
+		return fmt.Errorf("failed to lock source account: %v", err)
+	}
+
+	// 3. Check Balance (The Business Rule)
+	if currentBalance < txReq.Amount {
+		return fmt.Errorf("insufficient funds")
+	}
+
+	// 4. Update Balances (Deduct from Source, Add to Destination)
+	// Note: We should technically lock the destination too to prevent deadlocks, 
+	// but for this MVP, we update directly.
+	_, err = tx.ExecContext(ctx, `UPDATE accounts SET balance = balance - $1 WHERE id = $2`, txReq.Amount, txReq.FromAccount)
+	if err != nil { return err }
+
+	_, err = tx.ExecContext(ctx, `UPDATE accounts SET balance = balance + $1 WHERE id = $2`, txReq.Amount, txReq.ToAccount)
+	if err != nil { return err }
+
+	// 5. Record the Transaction in the Ledger
+	queryInsert := `
+		INSERT INTO transactions (from_account_id, to_account_id, amount, status)
+		VALUES ($1, $2, $3, 'COMPLETED')
+		RETURNING id`
+	
+	err = tx.QueryRowContext(ctx, queryInsert, txReq.FromAccount, txReq.ToAccount, txReq.Amount).Scan(&txReq.ID)
+	if err != nil { return err }
+
+	// 6. Commit (Make it permanent)
+	return tx.Commit()
 }
