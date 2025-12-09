@@ -2,7 +2,6 @@
 
 AtomicLedger is a high-concurrency, double-entry accounting system designed to eliminate race conditions in financial transactions. Built with **Go** and **PostgreSQL**.
 
-> **Status:** Architecture Finalized. Implementation in progress.
 
 ## The Problem: Double Spending
 In high-scale fintech environments (like UPI payments), concurrent requests can lead to "double spending" if database locking isn't handled correctly at the isolation level.
